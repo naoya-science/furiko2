@@ -8,41 +8,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const charts = {};
 
-    // HTML要素の生成
+    // ===================================
+    // HTML要素の動的生成
+    // ===================================
     function createManualForm(key, config) {
         return `
             <div class="p-4 border rounded-lg">
                 <h4 class="font-bold text-lg mb-2 text-[${config.color}]">${config.label}の実験</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block font-medium">${config.label} (${config.unit}):</label>
-                        <select class="w-full p-2 border rounded-md" data-key="${key}" data-type="condition">
-                            ${config.conditions.map(c => `<option value="${c}">${c}${config.unit}</option>`).join('')}
-                        </select>
+                ${config.conditions.map(c => `
+                    <div class="flex items-center gap-4 my-2 p-2 rounded-md bg-gray-50">
+                        <div class="font-bold w-24">${c}${config.unit}</div>
+                        <input type="number" step="0.01" placeholder="1回目" class="w-full p-1 border rounded-md manual-time-input" data-key="${key}" data-condition="${c}" data-trial="0">
+                        <input type="number" step="0.01" placeholder="2回目" class="w-full p-1 border rounded-md manual-time-input" data-key="${key}" data-condition="${c}" data-trial="1">
+                        <input type="number" step="0.01" placeholder="3回目" class="w-full p-1 border rounded-md manual-time-input" data-key="${key}" data-condition="${c}" data-trial="2">
                     </div>
-                    <div>
-                        <label class="block font-medium">10往復の時間 (秒):</label>
-                        <input type="number" step="0.01" class="w-full p-2 border rounded-md" placeholder="例: 14.28" data-key="${key}" data-type="time">
-                    </div>
-                </div>
-                <button class="add-result-btn mt-4 bg-blue-600 text-white font-bold py-2 px-4 rounded-full hover:bg-blue-700" data-key="${key}">記録する</button>
-            </div>
-        `;
-    }
-
-    function createAutoForm(key, config) {
-        return `
-            <div class="stopwatch-item p-4 border rounded-lg text-center">
-                <h4 class="font-bold text-lg mb-2">${config.label}</h4>
-                <div class="text-4xl font-bold my-2" id="stopwatch-${key}">00:00.00</div>
-                <div class="my-4">
-                    <label>${config.label} (${config.unit}):</label>
-                    <select class="p-2 border rounded-md" data-key="${key}" data-type="condition">
-                       ${config.conditions.map(c => `<option value="${c}">${c}${config.unit}</option>`).join('')}
-                    </select>
-                </div>
-                <button class="start-stop-btn bg-green-500 text-white font-bold py-2 px-4 rounded-full" data-key="${key}">スタート</button>
-                <button class="record-btn hidden bg-blue-600 text-white font-bold py-2 px-4 rounded-full" data-key="${key}">記録する</button>
+                `).join('')}
             </div>
         `;
     }
@@ -53,12 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h3 class="text-lg font-bold text-center mb-4">${config.label}と時間の関係</h3>
                 <div class="h-64"><canvas id="chart-${key}"></canvas></div>
                 <div class="mt-4 overflow-x-auto">
-                    <table class="w-full text-left border-collapse" id="table-${key}">
-                        <thead>
-                            <tr class="bg-gray-100">
+                    <table class="w-full text-left border-collapse text-sm" id="table-${key}">
+                        <thead class="bg-gray-100">
+                            <tr>
                                 <th class="p-2 border">${config.label}</th>
-                                <th class="p-2 border">10往復(秒)</th>
-                                <th class="p-2 border">1往復(秒)</th>
+                                <th class="p-2 border">1回目</th><th class="p-2 border">2回目</th><th class="p-2 border">3回目</th>
+                                <th class="p-2 border">合計</th><th class="p-2 border">平均</th><th class="p-2 border font-bold">1往復</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -67,162 +47,222 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
     }
-
-    function createSimControls() {
-        return `
-            <h4 class="text-xl font-bold mb-4">条件を決めよう</h4>
-            ${Object.entries(experiments).map(([key, config]) => `
-                <div class="mb-4">
-                    <label for="sim-${key}" class="block font-medium">${config.label} (${config.unit})</label>
-                    <input type="range" id="sim-${key}" min="${config.conditions[0]}" max="${config.conditions[config.conditions.length - 1]}" step="${key === 'length' ? 25 : 10}" value="${config.conditions[0]}" class="w-full">
-                    <span id="sim-${key}-value" class="block text-right">${config.conditions[0]}${config.unit}</span>
-                </div>
-            `).join('')}
-            <button id="startSimBtn" class="mt-4 bg-blue-600 text-white font-bold py-2 px-6 rounded-full w-full">シミュレーションスタート</button>
-        `;
-    }
-
+    
+    // ===================================
     // 画面の初期化
+    // ===================================
     const manualFormsContainer = document.getElementById('manual-forms');
-    const autoFormsContainer = document.getElementById('auto-forms');
     const dataOutputsContainer = document.getElementById('data-outputs');
-    const simControlsContainer = document.getElementById('sim-controls');
-
+    
     Object.entries(experiments).forEach(([key, config]) => {
         manualFormsContainer.innerHTML += createManualForm(key, config);
-        autoFormsContainer.innerHTML += createAutoForm(key, config);
         dataOutputsContainer.innerHTML += createDataOutput(key, config);
         createChart(key, config);
+        // 初期テーブル描画
+        updateManualDisplay(key); 
     });
-    simControlsContainer.innerHTML = createSimControls();
 
-
+    // ===================================
     // グラフの作成と更新
+    // ===================================
     function createChart(key, config) {
         const ctx = document.getElementById(`chart-${key}`).getContext('2d');
         charts[key] = new Chart(ctx, {
             type: 'bar',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: '1往復の時間 (秒)',
-                    data: [],
-                    backgroundColor: config.color + '80', // 半透明
-                    borderColor: config.color,
-                    borderWidth: 1
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            data: { labels: [], datasets: [{
+                label: '1往復の時間 (秒)', data: [], backgroundColor: config.color + '80',
+                borderColor: config.color, borderWidth: 1
+            }]},
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, max: 5, title: { display: true, text: '時間(秒)' } } }
+            }
         });
     }
     
-    function updateDisplay(key) {
+    function updateManualDisplay(key) {
         const config = experiments[key];
         const tableBody = document.querySelector(`#table-${key} tbody`);
         tableBody.innerHTML = '';
-        const sortedConditions = Object.keys(config.data).sort((a, b) => a - b);
         
-        charts[key].data.labels = sortedConditions;
-        charts[key].data.datasets[0].data = sortedConditions.map(c => config.data[c] / 10);
-        charts[key].update();
+        const chartLabels = [];
+        const chartData = [];
 
-        sortedConditions.forEach(condition => {
-            const time = config.data[condition];
-            const row = `<tr><td class="p-2 border">${condition}${config.unit}</td><td class="p-2 border">${time.toFixed(2)}</td><td class="p-2 border">${(time / 10).toFixed(2)}</td></tr>`;
+        config.conditions.forEach(condition => {
+            const times = config.data[condition] || [];
+            const validTimes = times.filter(t => t > 0);
+            const sum = validTimes.reduce((a, b) => a + b, 0);
+            const avg = validTimes.length > 0 ? sum / validTimes.length : 0;
+            const period = avg > 0 ? avg / 10 : 0;
+
+            const row = `
+                <tr>
+                    <td class="p-2 border">${condition}${config.unit}</td>
+                    <td class="p-2 border">${times[0] ? times[0].toFixed(2) : '-'}</td>
+                    <td class="p-2 border">${times[1] ? times[1].toFixed(2) : '-'}</td>
+                    <td class="p-2 border">${times[2] ? times[2].toFixed(2) : '-'}</td>
+                    <td class="p-2 border">${sum > 0 ? sum.toFixed(2) : '-'}</td>
+                    <td class="p-2 border">${avg > 0 ? avg.toFixed(2) : '-'}</td>
+                    <td class="p-2 border font-bold">${period > 0 ? period.toFixed(2) : '-'}</td>
+                </tr>`;
             tableBody.innerHTML += row;
+            
+            if (period > 0) {
+                chartLabels.push(`${condition}${config.unit}`);
+                chartData.push(period);
+            }
         });
+
+        charts[key].data.labels = chartLabels;
+        charts[key].data.datasets[0].data = chartData;
+        charts[key].update();
     }
 
-    // イベントリスナー
-    document.getElementById('manual-forms').addEventListener('click', (e) => {
-        if (e.target.classList.contains('add-result-btn')) {
-            const key = e.target.dataset.key;
-            const condition = document.querySelector(`[data-key="${key}"][data-type="condition"]`).value;
-            const time = parseFloat(document.querySelector(`[data-key="${key}"][data-type="time"]`).value);
-            if (!isNaN(time)) {
-                experiments[key].data[condition] = time;
-                updateDisplay(key);
+    // ===================================
+    // 手動記録 イベントリスナー
+    // ===================================
+    manualFormsContainer.addEventListener('input', e => {
+        if (e.target.classList.contains('manual-time-input')) {
+            const { key, condition, trial } = e.target.dataset;
+            const value = parseFloat(e.target.value);
+            
+            if (!experiments[key].data[condition]) {
+                experiments[key].data[condition] = [];
             }
+            experiments[key].data[condition][parseInt(trial)] = value;
+            
+            updateManualDisplay(key);
         }
     });
 
-    const stopwatches = {};
-    document.getElementById('auto-forms').addEventListener('click', (e) => {
-        const key = e.target.dataset.key;
-        if (e.target.classList.contains('start-stop-btn')) {
-            const btn = e.target;
-            if (!stopwatches[key] || !stopwatches[key].isRunning) {
-                stopwatches[key] = { isRunning: true, startTime: Date.now(), intervalId: setInterval(() => {
-                    const elapsed = (Date.now() - stopwatches[key].startTime) / 1000;
-                    document.getElementById(`stopwatch-${key}`).textContent = elapsed.toFixed(2);
-                }, 10)};
-                btn.textContent = 'ストップ';
-                btn.classList.replace('bg-green-500', 'bg-red-500');
-                document.querySelector(`.record-btn[data-key="${key}"]`).classList.add('hidden');
+    // ===================================
+    // ストップウォッチモード
+    // ===================================
+    const swDisplay = document.getElementById('stopwatch-display');
+    const swStartBtn = document.getElementById('sw-start');
+    const swStopBtn = document.getElementById('sw-stop');
+    const swResetBtn = document.getElementById('sw-reset');
+    const swRecordBtn = document.getElementById('sw-record');
+    const swLogBody = document.getElementById('sw-log-body');
+    const expTypeSelect = document.getElementById('experiment-type');
+    const swControlsContainer = document.getElementById('sw-controls');
+    let swState = { isRunning: false, startTime: 0, intervalId: null, elapsedTime: 0 };
+    let logCount = 0;
+
+    // スライダー生成
+    Object.entries(experiments).forEach(([key, config]) => {
+        const isLength = key === 'length';
+        const step = isLength ? 25 : 10;
+        const min = config.conditions[0];
+        const max = config.conditions[config.conditions.length-1];
+
+        swControlsContainer.innerHTML += `
+            <div id="sw-control-${key}" class="p-2 rounded-md transition-all duration-300">
+                <label for="sw-${key}" class="block font-medium">${config.label} (${config.unit})</label>
+                <div class="flex items-center gap-4">
+                    <input type="range" id="sw-${key}" min="${min}" max="${max}" step="${step}" value="${min}" class="w-full">
+                    <span id="sw-${key}-value" class="font-bold w-24 text-right">${min}${config.unit}</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    // スライダーの値表示更新
+    swControlsContainer.addEventListener('input', e => {
+        if (e.target.type === 'range') {
+            const key = e.target.id.split('-')[1];
+            document.getElementById(`${e.target.id}-value`).textContent = e.target.value + experiments[key].unit;
+        }
+    });
+
+    // 実験の種類に応じてヒントを表示
+    expTypeSelect.addEventListener('change', e => {
+        const selectedType = e.target.value;
+        Object.keys(experiments).forEach(key => {
+            const controlDiv = document.getElementById(`sw-control-${key}`);
+            const slider = document.getElementById(`sw-${key}`);
+            if (selectedType === 'none') {
+                controlDiv.classList.remove('bg-yellow-200', 'bg-gray-200');
+                slider.disabled = false;
+            } else if (key === selectedType) {
+                controlDiv.classList.add('bg-yellow-200'); // 動かす値
+                controlDiv.classList.remove('bg-gray-200');
+                slider.disabled = false;
             } else {
-                clearInterval(stopwatches[key].intervalId);
-                stopwatches[key].isRunning = false;
-                btn.textContent = 'スタート';
-                btn.classList.replace('bg-red-500', 'bg-green-500');
-                document.querySelector(`.record-btn[data-key="${key}"]`).classList.remove('hidden');
+                controlDiv.classList.add('bg-gray-200'); // 揃える値
+                controlDiv.classList.remove('bg-yellow-200');
+                slider.disabled = true;
             }
-        }
-        if (e.target.classList.contains('record-btn')) {
-            const time = parseFloat(document.getElementById(`stopwatch-${key}`).textContent);
-            const condition = document.querySelector(`#auto-forms [data-key="${key}"][data-type="condition"]`).value;
-            experiments[key].data[condition] = time;
-            updateDisplay(key);
-            e.target.classList.add('hidden');
-        }
+        });
     });
 
-    // シミュレーション
-    const simCanvas = document.getElementById('pendulumCanvas');
-    const simCtx = simCanvas.getContext('2d');
-    let animationId;
-    
-    function drawPendulum(angle, length) {
-        const pivotX = simCanvas.width / 2;
-        const pivotY = 20;
-        const bobRadius = 15;
-        const bobX = pivotX + length * Math.sin(angle);
-        const bobY = pivotY + length * Math.cos(angle);
-        simCtx.clearRect(0, 0, simCanvas.width, simCanvas.height);
-        simCtx.beginPath();
-        simCtx.moveTo(pivotX, pivotY);
-        simCtx.lineTo(bobX, bobY);
-        simCtx.stroke();
-        simCtx.beginPath();
-        simCtx.arc(bobX, bobY, bobRadius, 0, 2 * Math.PI);
-        simCtx.fillStyle = '#3b82f6';
-        simCtx.fill();
+    function formatTime(ms) {
+        const minutes = Math.floor(ms / 60000);
+        const seconds = Math.floor((ms % 60000) / 1000);
+        const hundredths = Math.floor((ms % 1000) / 10);
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${hundredths.toString().padStart(2, '0')}`;
     }
-    
-    document.getElementById('startSimBtn').addEventListener('click', () => {
-        if(animationId) cancelAnimationFrame(animationId);
-        const L = parseFloat(document.getElementById('sim-length').value) / 100;
-        const maxAngle = parseFloat(document.getElementById('sim-amplitude').value) * Math.PI / 180;
-        const period = 2 * Math.PI * Math.sqrt(L / 9.8);
-        document.getElementById('periodDisplay').textContent = period.toFixed(2);
-        let startTime = performance.now();
-        function animate(time) {
-            const elapsedTime = (time - startTime) / 1000;
-            const angle = maxAngle * Math.cos(2 * Math.PI * elapsedTime / period);
-            drawPendulum(angle, L * 500); // 描画用に長さを調整
-            animationId = requestAnimationFrame(animate);
-        }
-        animationId = requestAnimationFrame(animate);
-    });
-    
-    // シミュレーションのスライダー値表示
-    simControlsContainer.addEventListener('input', e => {
-        if(e.target.type === 'range') {
-            document.getElementById(`${e.target.id}-value`).textContent = e.target.value + experiments[e.target.id.split('-')[1]].unit;
-        }
+
+    swStartBtn.addEventListener('click', () => {
+        if (swState.isRunning) return;
+        swState.isRunning = true;
+        swState.startTime = Date.now() - swState.elapsedTime;
+        swState.intervalId = setInterval(() => {
+            swDisplay.textContent = formatTime(Date.now() - swState.startTime);
+        }, 10);
+        swStartBtn.disabled = true;
+        swStopBtn.disabled = false;
+        swResetBtn.disabled = true;
+        swRecordBtn.disabled = true;
     });
 
+    swStopBtn.addEventListener('click', () => {
+        if (!swState.isRunning) return;
+        swState.isRunning = false;
+        clearInterval(swState.intervalId);
+        swState.elapsedTime = Date.now() - swState.startTime;
+        swStartBtn.disabled = false;
+        swStopBtn.disabled = true;
+        swResetBtn.disabled = false;
+        swRecordBtn.disabled = false;
+    });
 
+    swResetBtn.addEventListener('click', () => {
+        swState = { isRunning: false, startTime: 0, intervalId: null, elapsedTime: 0 };
+        swDisplay.textContent = '00:00.00';
+        swStartBtn.disabled = false;
+        swStopBtn.disabled = true;
+        swResetBtn.disabled = true;
+        swRecordBtn.disabled = true;
+    });
+    
+    swRecordBtn.addEventListener('click', () => {
+        if (logCount >= 50) {
+            alert('最大50件まで記録できます。');
+            return;
+        }
+        logCount++;
+        const length = document.getElementById('sw-length').value;
+        const weight = document.getElementById('sw-weight').value;
+        const amplitude = document.getElementById('sw-amplitude').value;
+        const time = (swState.elapsedTime / 1000).toFixed(2);
+        
+        const row = `
+            <tr>
+                <td class="p-2 border">${logCount}</td>
+                <td class="p-2 border">${length}</td>
+                <td class="p-2 border">${weight}</td>
+                <td class="p-2 border">${amplitude}</td>
+                <td class="p-2 border">${time}</td>
+            </tr>
+        `;
+        swLogBody.innerHTML += row;
+        swRecordBtn.disabled = true;
+    });
+
+    // ===================================
     // タブ切り替え
+    // ===================================
     const tabs = document.querySelectorAll('.tab-button');
     const panels = {
         'tab-manual': document.getElementById('panel-manual'),
@@ -236,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
             Object.values(panels).forEach(p => p.classList.add('hidden'));
             tab.classList.add('active');
             panels[tab.id].classList.remove('hidden');
-            dataSection.style.display = tab.id === 'tab-sim' ? 'none' : 'block';
+            dataSection.style.display = tab.id === 'tab-manual' ? 'block' : 'none';
         });
     });
 });
