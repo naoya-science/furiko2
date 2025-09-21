@@ -18,39 +18,72 @@
         <div class="bg-white rounded-t-lg shadow-sm">
             <div role="tablist" class="flex border-b border-gray-200">
                 <button id="tab-manual" role="tab" class="tab-button active">実験記録（手動）</button>
-                <button id="tab-auto" role="tab" class="tab-button">実験記録（自動）</button>
+                <button id="tab-auto" role="tab" class="tab-button">ストップウォッチモード</button>
                 <button id="tab-sim" role="tab" class="tab-button">シミュレーション</button>
             </div>
         </div>
 
         <div id="panel-manual" class="panel">
             <h3 class="text-xl font-bold mb-4">実験結果を入力しよう</h3>
-            <p class="mb-6">変える条件は一つだけ。実験が終わったら、ここに結果を入力してね。</p>
+            <p class="mb-6">変える条件は一つだけ。10往復の時間を3回まで測定し、入力してください。</p>
             <div class="space-y-8" id="manual-forms">
                 </div>
         </div>
         
         <div id="panel-auto" class="panel hidden">
-            <h3 class="text-xl font-bold mb-4">ストップウォッチで記録しよう</h3>
-            <p class="mb-6">10往復の時間を正確に測ってみよう。</p>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" id="auto-forms">
-                </div>
-        </div>
-
-        <div id="panel-sim" class="panel hidden">
-            <h3 class="text-xl font-bold mb-4">シミュレーションで確かめよう</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-gray-50 rounded-lg p-6" id="sim-controls">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="flex flex-col items-center">
+                    <h3 class="text-2xl font-bold mb-4">ストップウォッチ</h3>
+                    <div id="stopwatch-display" class="text-7xl font-mono font-bold my-4 p-4 bg-gray-900 text-white rounded-lg w-full text-center">00:00.00</div>
+                    <div class="flex space-x-4 mb-8">
+                        <button id="sw-start" class="bg-green-500 text-white font-bold py-3 px-8 rounded-full text-xl hover:bg-green-600">スタート</button>
+                        <button id="sw-stop" class="bg-red-500 text-white font-bold py-3 px-8 rounded-full text-xl hover:bg-red-600" disabled>ストップ</button>
+                        <button id="sw-reset" class="bg-gray-500 text-white font-bold py-3 px-8 rounded-full text-xl hover:bg-gray-600" disabled>リセット</button>
                     </div>
-                <div class="bg-gray-50 rounded-lg p-6 flex flex-col items-center">
-                    <canvas id="pendulumCanvas" class="w-full bg-white rounded-lg shadow-inner" height="300"></canvas>
-                    <p class="text-2xl font-bold mt-4">1往復の時間: <span id="periodDisplay">-.--</span> 秒</p>
+                    
+                    <div class="w-full bg-gray-50 p-4 rounded-lg border">
+                         <h4 class="text-lg font-bold mb-4">実験の条件</h4>
+                         <div class="mb-4">
+                            <label for="experiment-type" class="block font-bold mb-2">どの条件を変える実験？</label>
+                            <select id="experiment-type" class="w-full p-2 border rounded-md">
+                                <option value="none">-- 選択してください --</option>
+                                <option value="length">長さを変える実験</option>
+                                <option value="weight">重さを変える実験</option>
+                                <option value="amplitude">ふれはばを変える実験</option>
+                            </select>
+                         </div>
+                         <div id="sw-controls" class="space-y-4">
+                             </div>
+                         <button id="sw-record" class="mt-6 bg-blue-600 text-white font-bold py-3 px-6 rounded-full w-full text-lg hover:bg-blue-700" disabled>この条件でタイムを記録</button>
+                    </div>
+                </div>
+
+                <div class="h-full">
+                    <h3 class="text-2xl font-bold mb-4">実験メモ (最大50件)</h3>
+                    <div id="sw-log-container" class="h-[600px] overflow-y-auto border rounded-lg">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-100 sticky top-0">
+                                <tr>
+                                    <th class="p-2 border">#</th>
+                                    <th class="p-2 border">長さ(cm)</th>
+                                    <th class="p-2 border">重さ(g)</th>
+                                    <th class="p-2 border">ふれはば(°)</th>
+                                    <th class="p-2 border">時間(秒)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sw-log-body">
+                                </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <div id="panel-sim" class="panel hidden">
+            </div>
         
         <div id="data-section" class="panel mt-8">
-             <h2 class="section-title text-2xl font-bold mb-4">結果のまとめ</h2>
+             <h2 class="section-title text-2xl font-bold mb-4">結果のまとめ（手動記録）</h2>
              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" id="data-outputs">
                 </div>
         </div>
