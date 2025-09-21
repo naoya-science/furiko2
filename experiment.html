@@ -24,17 +24,36 @@
         </div>
 
         <div id="panel-manual" class="panel">
-            </div>
+            <h3 class="text-xl font-bold mb-4">実験結果を入力しよう</h3>
+            <p class="mb-6">変える条件は一つだけ。実験が終わったら、ここに結果を入力してね。</p>
+            <div class="space-y-8" id="manual-forms">
+                </div>
+        </div>
         
         <div id="panel-auto" class="panel hidden">
-            </div>
+            <h3 class="text-xl font-bold mb-4">ストップウォッチで記録しよう</h3>
+            <p class="mb-6">10往復の時間を正確に測ってみよう。</p>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" id="auto-forms">
+                </div>
+        </div>
 
         <div id="panel-sim" class="panel hidden">
+            <h3 class="text-xl font-bold mb-4">シミュレーションで確かめよう</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gray-50 rounded-lg p-6" id="sim-controls">
+                    </div>
+                <div class="bg-gray-50 rounded-lg p-6 flex flex-col items-center">
+                    <canvas id="pendulumCanvas" class="w-full bg-white rounded-lg shadow-inner" height="300"></canvas>
+                    <p class="text-2xl font-bold mt-4">1往復の時間: <span id="periodDisplay">-.--</span> 秒</p>
+                </div>
             </div>
+        </div>
         
         <div id="data-section" class="panel mt-8">
              <h2 class="section-title text-2xl font-bold mb-4">結果のまとめ</h2>
-            </div>
+             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" id="data-outputs">
+                </div>
+        </div>
 
         <div class="text-center mt-8">
             <a href="index.html" class="text-blue-600 hover:underline">← Step1に戻る</a>
