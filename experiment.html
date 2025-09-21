@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ふりこのきまり学習サイト - Step2 実験しよう</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-blue-600">Step 2: 実験・シミュレーション</h1>
+        </header>
+
+        <div class="bg-white rounded-t-lg shadow-sm">
+            <div role="tablist" class="flex border-b border-gray-200">
+                <button id="tab-manual" role="tab" class="tab-button active">実験記録（手動）</button>
+                <button id="tab-auto" role="tab" class="tab-button">実験記録（自動）</button>
+                <button id="tab-sim" role="tab" class="tab-button">シミュレーション</button>
+            </div>
+        </div>
+
+        <div id="panel-manual" class="panel">
+            </div>
+        
+        <div id="panel-auto" class="panel hidden">
+            </div>
+
+        <div id="panel-sim" class="panel hidden">
+            </div>
+        
+        <div id="data-section" class="panel mt-8">
+             <h2 class="section-title text-2xl font-bold mb-4">結果のまとめ</h2>
+            </div>
+
+        <div class="text-center mt-8">
+            <a href="index.html" class="text-blue-600 hover:underline">← Step1に戻る</a>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
